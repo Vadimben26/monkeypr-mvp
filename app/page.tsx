@@ -1,103 +1,69 @@
-import Image from "next/image";
+import Link from "next/link";
+
+const steps = [
+  { n: "01", t: "Tell us where your money comes from", d: "Student job, Vinted sales, money from family, crypto… in plain words, no jargon." },
+  { n: "02", t: "See it through a bank's eyes", d: "Our AML risk engine scores every source and explains what a compliance officer would flag." },
+  { n: "03", t: "Fix it and prove it", d: "Get the exact documents to collect and download a bank-ready source-of-funds statement." },
+];
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="min-h-screen">
+      <nav className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
+        <span className="text-lg font-black tracking-tight">Monkeypr</span>
+        <Link href="/prove" className="btn btn-dark text-sm">Start my check</Link>
+      </nav>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <section className="mx-auto max-w-5xl px-5 pb-16 pt-10 sm:pt-20">
+        <p className="mb-5 inline-block rounded-full bg-lime px-3 py-1 text-xs font-bold uppercase tracking-wider">
+          RegTech for Gen Z · AML & source of funds
+        </p>
+        <h1 className="max-w-3xl text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
+          Your bank will ask where your money comes from. Be ready.
+        </h1>
+        <p className="mt-6 max-w-2xl text-lg text-black/65">
+          Accounts frozen over a Vinted payout or a birthday transfer from grandma are real. Nobody teaches young people how
+          anti-money-laundering checks work. Monkeypr does — in 3 minutes, and it hands you the proof.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/prove" className="btn btn-dark">Check my money →</Link>
+          <Link href="/prove?demo=1" className="btn btn-ghost">Try with a demo profile</Link>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </section>
+
+      <section className="mx-auto grid max-w-5xl gap-4 px-5 pb-20 sm:grid-cols-3">
+        {steps.map((s) => (
+          <div key={s.n} className="card">
+            <div className="text-sm font-black text-black/30">{s.n}</div>
+            <h3 className="mt-2 font-bold">{s.t}</h3>
+            <p className="mt-1.5 text-sm text-black/60">{s.d}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="bg-ink text-white">
+        <div className="mx-auto grid max-w-5xl gap-8 px-5 py-14 sm:grid-cols-2">
+          <div>
+            <h2 className="text-2xl font-black">Why this matters for our generation</h2>
+            <p className="mt-3 text-white/70">
+              Money is still a taboo topic in many families, so young people open their first account, start side hustles
+              and receive transfers without knowing what banks are legally required to check. Criminals exploit that gap
+              by recruiting students as money mules on social media.
+            </p>
+          </div>
+          <ul className="space-y-3 text-white/80">
+            <li>✔ Explainable score — every point comes with a reason</li>
+            <li>✔ Money-mule pattern detection with a clear “stop” alert</li>
+            <li>✔ Personalised document checklist</li>
+            <li>✔ Bank-ready PDF statement, generated on your device</li>
+            <li>✔ No account needed, nothing stored on our servers</li>
+          </ul>
+        </div>
+      </section>
+
+      <footer className="mx-auto max-w-5xl px-5 py-8 text-xs text-black/45">
+        Monkeypr MVP · IE University Fintech project · Educational tool, not legal or financial advice.
       </footer>
-    </div>
+    </main>
   );
 }

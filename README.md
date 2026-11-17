@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Monkeypr — MVP
 
-## Getting Started
+**RegTech for Gen Z · AML & source of funds.**
+Young people get bank accounts frozen over a Vinted payout or a family transfer because nobody explains how anti-money-laundering (AML) checks work. Monkeypr shows them how a bank sees their money, tells them what to fix, and generates a bank-ready source-of-funds statement.
 
-First, run the development server:
+## User journey (working)
+1. **About you**: name, age, situation, and why the user needs to prove their funds.
+2. **Your money**: add each source: type, amount, frequency, payment method, payer, and the proof available.
+3. **Your result**:
+   - an explainable risk score from 0 to 100 with a band (Bank-ready / Almost there / Expect questions / High risk),
+   - pattern alerts: money-mule behaviour, structuring just under €1k / €10k, heavy cash use, undocumented third-party money, income inconsistent with the profile,
+   - a source-by-source breakdown with reasons and a document checklist,
+   - educational tips (DAC7 platform reporting, gift letters, cash, crypto, never lending your account),
+   - a **PDF source-of-funds statement** generated in the browser.
+
+Try it fast with `/prove?demo=1`.
+
+## Risk engine
+`lib/risk.ts` is rule-based and fully explainable on purpose, because regulators expect AML decisions to be explainable. Each source scores points for type + method + payer + evidence. The overall score is 60% the amount-weighted average plus 40% the riskiest material source, plus points from pattern-level flags.
+
+## Privacy
+Everything runs client-side. No account and no database, and no data leaves the device.
+
+## Stack
+Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · jsPDF. Deployed on Vercel.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Roadmap
+- Bank-statement upload (CSV / Open Banking API) to pre-fill sources automatically
+- ML anomaly model trained on synthetic transaction data, on top of the rules
+- "Data access" module: see and revoke the apps that hold your financial data
+- Save and share the statement with a verification link / QR
+- French & Spanish versions
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+_Educational tool, not legal or financial advice. IE University Fintech course project._

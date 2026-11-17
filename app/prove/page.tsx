@@ -10,7 +10,11 @@ import {
   EVIDENCE_LABEL,
   IncomeEntry,
   METHOD_LABEL,
+  MlResult,
   PAYER_LABEL,
+  SENDER_LABEL,
+  toMlInput,
+  toSenderType,
   Profile,
   PURPOSE_LABEL,
   STATUS_LABEL,
@@ -71,6 +75,8 @@ export default function Prove() {
   const [profile, setProfile] = useState<Profile>({ name: "", age: 19, status: "student", purpose: "open_account" });
   const [entries, setEntries] = useState<IncomeEntry[]>([blankEntry()]);
   const [busy, setBusy] = useState(false);
+  const [ml, setMl] = useState<MlResult[] | null>(null);
+  const [mlStatus, setMlStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("demo")) loadDemo();
@@ -84,10 +90,36 @@ export default function Prove() {
 
   const valid = entries.filter((e) => e.amount > 0);
   const result: Assessment | null = useMemo(
-    () => (step === 3 ? assess(profile, valid) : null),
+    () => (step === 3 ? assess(profile, valid, ml || undefined) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [step, profile, entries]
+    [step, profile, entries, ml]
   );
+
+  async function runModel() {
+    setMl(null);
+    setMlStatus("loading");
+    try {
+      const r = await fetch("/api/ml", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactions: valid.map(toMlInput) }),
+      });
+      const data = await r.json();
+      if (!r.ok || !Array.isArray(data.results)) throw new Error(data.error || "error");
+      setMl(data.results);
+      setMlStatus(data.results.some((x: MlResult) => x.ok) ? "done" : "error");
+    } catch {
+      setMlStatus("error");
+    }
+  }
+
+  function goToResult() {
+    setStep(3);
+    window.scrollTo(0, 0);
+    runModel();
+  }
+
+  const mlFor = (id: string) => ml?.find((m) => m.id === id);
 
   const update = (id: string, patch: Partial<IncomeEntry>) =>
     setEntries((xs) => xs.map((x) => (x.id === id ? { ...x, ...patch } : x)));
@@ -194,7 +226,7 @@ export default function Prove() {
 
             <div className="mt-6 flex justify-between">
               <button className="btn btn-ghost" onClick={() => setStep(1)}>← Back</button>
-              <button className="btn btn-dark" disabled={valid.length === 0} onClick={() => { setStep(3); window.scrollTo(0, 0); }}>
+              <button className="btn btn-dark" disabled={valid.length === 0} onClick={goToResult}>
                 See how a bank sees me →
               </button>
             </div>
@@ -234,6 +266,26 @@ export default function Prove() {
               </div>
             </div>
 
+            <div className="card mt-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="font-black">🤖 AI transaction check</h2>
+                  <p className="text-sm text-black/55">
+                    Each source is sent to our machine-learning model (amount, sender type, recurrence) as a second opinion on the rules.
+                  </p>
+                </div>
+                {mlStatus === "loading" && <span className="text-sm font-semibold text-black/50">Analysing…</span>}
+                {mlStatus === "done" && ml && (
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${ml.some((m) => m.ok && m.prediction === 1) ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
+                    {ml.filter((m) => m.ok && m.prediction === 1).length} / {ml.filter((m) => m.ok).length} flagged
+                  </span>
+                )}
+                {mlStatus === "error" && (
+                  <button className="btn btn-ghost text-sm" onClick={runModel}>Model unavailable — retry</button>
+                )}
+              </div>
+            </div>
+
             {result.flags.length > 0 && (
               <div className="mt-8">
                 <h2 className="text-lg font-black">Alerts</h2>
@@ -263,8 +315,21 @@ export default function Prove() {
                         <div className="text-sm text-black/50">
                           {eur(r.entry.amount)} {r.entry.frequency === "monthly" ? "/ month" : "one-off"} · {METHOD_LABEL[r.entry.method].split(" (")[0]} · {PAYER_LABEL[r.entry.payer].split(" (")[0]}
                         </div>
+                        <div className="mt-0.5 text-xs text-black/40">Model input: sender = {SENDER_LABEL[toSenderType(r.entry)]}, recurrence = {r.entry.frequency === "monthly" ? 1 : 0}</div>
                       </div>
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${riskTone(r.risk)}`}>Risk {r.risk}</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {(() => {
+                          const m = mlFor(r.entry.id);
+                          if (mlStatus === "loading") return <span className="rounded-full bg-black/5 px-2.5 py-1 text-xs font-semibold text-black/50">AI…</span>;
+                          if (!m || !m.ok) return null;
+                          return m.prediction === 1 ? (
+                            <span className="rounded-full bg-red-600 px-2.5 py-1 text-xs font-bold text-white">AI: suspicious · {Math.round(m.probability * 100)}%</span>
+                          ) : (
+                            <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white">AI: normal · {Math.round(m.probability * 100)}%</span>
+                          );
+                        })()}
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${riskTone(r.risk)}`}>Rules risk {r.risk}</span>
+                      </div>
                     </div>
                     <div className="mt-3 grid gap-4 sm:grid-cols-2">
                       <div>
@@ -298,7 +363,9 @@ export default function Prove() {
                 Each source gets points for its type, payment method, who paid you and the proof you have (0–100). Sources are
                 weighted by how much money they represent, then pattern-level alerts are added (money-mule behaviour, amounts
                 just under thresholds, heavy cash use, income inconsistent with your profile). Rules are inspired by the risk
-                factors banks use for AML / KYC checks. Educational tool — not legal advice.
+                factors banks use for AML / KYC checks. On top of that, a machine-learning classifier trained on transaction
+                data scores each source from its amount, sender type and recurrence; each transaction it flags adds 10 points
+                (max 20). Educational tool — not legal advice.
               </p>
             </details>
           </section>

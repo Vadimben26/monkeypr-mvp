@@ -207,7 +207,41 @@ function scoreEntry(e: IncomeEntry): EntryResult {
   return { entry: e, annual: annualise(e), risk: r, reasons, documents: documentsFor(e) };
 }
 
-export function assess(profile: Profile, entries: IncomeEntry[]): Assessment {
+// ---- ML model integration -------------------------------------------------
+// The model (PythonAnywhere /api/predict) expects:
+//   transaction_amount (float), sender_type (company | crypto_exchange | individual | marketplace),
+//   recurrence (int: 1 = recurring, 0 = one-off)
+// and returns { prediction: 0 | 1, probability }. prediction = 1 → transaction flagged as suspicious.
+export type SenderType = "company" | "crypto_exchange" | "individual" | "marketplace";
+
+export function toSenderType(e: IncomeEntry): SenderType {
+  if (e.type === "crypto" || e.method === "crypto_wallet") return "crypto_exchange";
+  if (e.payer === "employer" || e.payer === "institution") return "company";
+  if (e.payer === "platform") return "marketplace";
+  return "individual";
+}
+
+export const SENDER_LABEL: Record<SenderType, string> = {
+  company: "Company",
+  crypto_exchange: "Crypto exchange",
+  individual: "Individual",
+  marketplace: "Marketplace",
+};
+
+export function toMlInput(e: IncomeEntry) {
+  return {
+    id: e.id,
+    transaction_amount: e.amount,
+    sender_type: toSenderType(e),
+    recurrence: e.frequency === "monthly" ? 1 : 0,
+  };
+}
+
+export type MlResult =
+  | { id: string; ok: true; prediction: number; probability: number }
+  | { id: string; ok: false; error: string };
+
+export function assess(profile: Profile, entries: IncomeEntry[], ml?: MlResult[]): Assessment {
   const results = entries.map(scoreEntry);
   const totalAnnual = results.reduce((s, x) => s + x.annual, 0);
   const flags: Flag[] = [];
@@ -293,6 +327,18 @@ export function assess(profile: Profile, entries: IncomeEntry[]): Assessment {
       title: "Large one-off amount",
       detail: "Single amounts of €10,000 or more usually trigger enhanced checks. A clear document for it matters more than anything else in your file.",
       points: 5,
+    });
+  }
+
+  // 7. ML model second opinion
+  const mlFlagged = (ml || []).filter((m) => m.ok && m.prediction === 1);
+  if (mlFlagged.length) {
+    flags.push({
+      severity: "warning",
+      title: `ML model flagged ${mlFlagged.length} transaction${mlFlagged.length > 1 ? "s" : ""}`,
+      detail:
+        "Our machine-learning model, trained on transaction data, classifies these transactions as suspicious based on amount, sender type and recurrence. Check them first — they're the ones a bank's monitoring system is most likely to stop.",
+      points: Math.min(20, 10 * mlFlagged.length),
     });
   }
 

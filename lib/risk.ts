@@ -211,7 +211,14 @@ function scoreEntry(e: IncomeEntry): EntryResult {
 // The model (PythonAnywhere /api/predict) expects:
 //   transaction_amount (float), sender_type (company | crypto_exchange | individual | marketplace),
 //   recurrence (int: 1 = recurring, 0 = one-off)
-// and returns { prediction: 0 | 1, probability }. prediction = 1 → transaction flagged as suspicious.
+// and returns { prediction: class id, probability }.
+// Class meanings come from the training data — fill in ML_CLASS below.
+// `risky: true` classes add points to the score.
+export const ML_CLASS: Record<number, { label: string; risky: boolean }> = {
+  // e.g. 2: { label: "High risk", risky: true },
+};
+export const mlLabel = (c: number) => ML_CLASS[c]?.label ?? `Class ${c}`;
+export const mlRisky = (c: number) => ML_CLASS[c]?.risky ?? false;
 export type SenderType = "company" | "crypto_exchange" | "individual" | "marketplace";
 
 export function toSenderType(e: IncomeEntry): SenderType {
@@ -331,7 +338,7 @@ export function assess(profile: Profile, entries: IncomeEntry[], ml?: MlResult[]
   }
 
   // 7. ML model second opinion
-  const mlFlagged = (ml || []).filter((m) => m.ok && m.prediction === 1);
+  const mlFlagged = (ml || []).filter((m) => m.ok && mlRisky(m.prediction));
   if (mlFlagged.length) {
     flags.push({
       severity: "warning",

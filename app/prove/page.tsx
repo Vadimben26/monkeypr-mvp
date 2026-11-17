@@ -11,6 +11,8 @@ import {
   IncomeEntry,
   METHOD_LABEL,
   MlResult,
+  mlLabel,
+  mlRisky,
   PAYER_LABEL,
   SENDER_LABEL,
   toMlInput,
@@ -276,8 +278,8 @@ export default function Prove() {
                 </div>
                 {mlStatus === "loading" && <span className="text-sm font-semibold text-black/50">Analysing…</span>}
                 {mlStatus === "done" && ml && (
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${ml.some((m) => m.ok && m.prediction === 1) ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
-                    {ml.filter((m) => m.ok && m.prediction === 1).length} / {ml.filter((m) => m.ok).length} flagged
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${ml.some((m) => m.ok && mlRisky(m.prediction)) ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
+                    {ml.filter((m) => m.ok && mlRisky(m.prediction)).length} / {ml.filter((m) => m.ok).length} flagged
                   </span>
                 )}
                 {mlStatus === "error" && (
@@ -322,10 +324,10 @@ export default function Prove() {
                           const m = mlFor(r.entry.id);
                           if (mlStatus === "loading") return <span className="rounded-full bg-black/5 px-2.5 py-1 text-xs font-semibold text-black/50">AI…</span>;
                           if (!m || !m.ok) return null;
-                          return m.prediction === 1 ? (
-                            <span className="rounded-full bg-red-600 px-2.5 py-1 text-xs font-bold text-white">AI: suspicious · {Math.round(m.probability * 100)}%</span>
-                          ) : (
-                            <span className="rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white">AI: normal · {Math.round(m.probability * 100)}%</span>
+                          return (
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-bold text-white ${mlRisky(m.prediction) ? "bg-red-600" : "bg-ink"}`}>
+                              AI: {mlLabel(m.prediction)} · {Math.round(m.probability * 100)}% confidence
+                            </span>
                           );
                         })()}
                         <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${riskTone(r.risk)}`}>Rules risk {r.risk}</span>
